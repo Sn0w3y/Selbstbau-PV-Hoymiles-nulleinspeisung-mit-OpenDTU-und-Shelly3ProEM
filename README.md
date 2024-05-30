@@ -1,6 +1,6 @@
 # Achtung! bei OpenDTU gab es eine API Anpassung
 
-Dieses Skript ist nur kompatibel bis einschließlich Version V24.1.26 
+Dieses Skript ist kompatibel mit der neusten Version von OpenDTU ! :)
 
 # Nulleinspeisung Hoymiles HM-1500 mit OpenDTU & Python Steuerung
 
