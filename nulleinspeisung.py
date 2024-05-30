@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 import requests
 import time
 import sys
 import logging
 from requests.auth import HTTPBasicAuth
 
-# Configuration settings
+# Konfigurationseinstellungen
 config = {
     'serial': '116494406970',
     'maximum_wr': 1600,
@@ -13,11 +12,36 @@ config = {
     'dtu_ip': '192.168.17.225',
     'dtu_nutzer': 'admin',
     'dtu_passwort': 'openDTU42',
-    'shelly_ip': '192.168.17.230'
+    'shelly_ip': '192.168.17.230',
+    'shelly_type': None  # Wird automatisch erkannt
 }
 
-# Configure logging
+# Logging konfigurieren
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def detect_shelly_type():
+    try:
+        # Versuche, die Shelly Pro 3 EM API zu erreichen
+        url_pro = f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0'
+        response_pro = requests.get(url_pro, headers={'Content-Type': 'application/json'})
+        if response_pro.status_code == 200:
+            logging.info("Shelly Pro 3 EM erkannt")
+            return 'Pro 3 EM'
+
+        # Falls oben nicht erfolgreich, versuche die Shelly 3 EM API zu erreichen
+        url_3em = f'http://{config["shelly_ip"]}/status'
+        response_3em = requests.get(url_3em, headers={'Content-Type': 'application/json'})
+        if response_3em.status_code == 200:
+            logging.info("Shelly 3 EM erkannt")
+            return '3 EM'
+
+        logging.error("Konnte den Shelly-Typ nicht erkennen")
+        return None
+    except Exception as e:
+        logging.error(f'Fehler beim Erkennen des Shelly-Typs: {e}')
+        return None
+
 
 def fetch_dtu_data():
     try:
@@ -32,27 +56,41 @@ def fetch_dtu_data():
             'power': inverter['AC']['0']['Power']['v']
         }
     except Exception as e:
-        logging.error(f'Error fetching DTU data: {e}')
+        logging.error(f'Fehler beim Abrufen der DTU-Daten: {e}')
         return None
+
 
 def fetch_shelly_data():
     try:
-        url = f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0'
-        response = requests.get(url, headers={'Content-Type': 'application/json'}).json()
-        return response['total_act_power']
+        if config['shelly_type'] == 'Pro 3 EM':
+            url = f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0'
+            response = requests.get(url, headers={'Content-Type': 'application/json'}).json()
+            return response['total_act_power']
+        else:
+            url = f'http://{config["shelly_ip"]}/status'
+            response = requests.get(url, headers={'Content-Type': 'application/json'}).json()
+            return response['total_power']
     except Exception as e:
-        logging.error(f'Error fetching Shelly data: {e}')
+        logging.error(f'Fehler beim Abrufen der Shelly-Daten: {e}')
         return None
+
 
 def set_inverter_limit(setpoint):
     try:
         url = f'http://{config["dtu_ip"]}/api/limit/config'
         data = f'data={{"serial":"{config["serial"]}", "limit_type":0, "limit_value":{setpoint}}}'
-        response = requests.post(url, data=data, auth=HTTPBasicAuth(config['dtu_nutzer'], config['dtu_passwort']), headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        response = requests.post(url, data=data, auth=HTTPBasicAuth(config['dtu_nutzer'], config['dtu_passwort']),
+                                 headers={'Content-Type': 'application/x-www-form-urlencoded'})
         response_data = response.json()
-        logging.info(f'Configuration sent ({response_data["type"]})')
+        logging.info(f'Konfiguration gesendet ({response_data["type"]})')
     except Exception as e:
-        logging.error(f'Error sending inverter configuration: {e}')
+        logging.error(f'Fehler beim Senden der Inverter-Konfiguration: {e}')
+
+
+# Erkennung des Shelly-Typs
+config['shelly_type'] = detect_shelly_type()
+if config['shelly_type'] is None:
+    sys.exit("Fehler: Konnte den Shelly-Typ nicht erkennen")
 
 while True:
     dtu_data = fetch_dtu_data()
