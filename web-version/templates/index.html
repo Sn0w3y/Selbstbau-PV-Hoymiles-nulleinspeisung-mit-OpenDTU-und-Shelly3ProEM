@@ -4,52 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuration Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-brand">Configuration Dashboard</div>
-    </nav>
     <div class="container">
         <h1>Configuration Dashboard</h1>
-        <form method="POST" class="config-form">
+        <form method="POST" action="/">
             {{ form.hidden_tag() }}
-            <div class="form-group">
-                {{ form.serial.label }} {{ form.serial(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.maximum_wr.label }} {{ form.maximum_wr(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.minimum_wr.label }} {{ form.minimum_wr(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.dtu_ip.label }} {{ form.dtu_ip(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.dtu_nutzer.label }} {{ form.dtu_nutzer(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.dtu_passwort.label }} {{ form.dtu_passwort(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.shelly_ip.label }} {{ form.shelly_ip(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.shelly_type.label }} {{ form.shelly_type(class="form-control") }}
-            </div>
-            <div class="form-group">
-                {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
+            <div class="config-form">
+                <div class="form-group">
+                    {{ form.serial.label }} {{ form.serial(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.maximum_wr.label }} {{ form.maximum_wr(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.minimum_wr.label }} {{ form.minimum_wr(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.dtu_ip.label }} {{ form.dtu_ip(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.dtu_nutzer.label }} {{ form.dtu_nutzer(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.dtu_passwort.label }} {{ form.dtu_passwort(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.shelly_ip.label }} {{ form.shelly_ip(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label for="shellyType">Detected Shelly Type</label>
+                    <input type="text" id="shellyType" class="form-control" readonly>
+                </div>
             </div>
             <div class="form-actions">
                 {{ form.submit(class="btn btn-primary") }}
-                {% if auto_mode %}
-                    {{ form.stop_auto(class="btn btn-danger") }}
-                {% else %}
-                    {{ form.start_auto(class="btn btn-success") }}
-                {% endif %}
             </div>
         </form>
+        <div class="form-actions">
+            <form method="POST" action="/start_auto" class="inline-form">
+                <button type="submit" class="btn btn-success">Start AUTO Mode</button>
+            </form>
+            <form method="POST" action="/stop_auto" class="inline-form">
+                <button type="submit" class="btn btn-danger">Stop AUTO Mode</button>
+            </form>
+        </div>
         <div class="flow-diagram">
             <div class="box" id="dtuBox">
                 <h2>DTU</h2>
@@ -63,7 +67,6 @@
                 <p><span id="shellyPower">-</span> W</p>
                 <p>Verbrauch: <span id="totalConsumption">-</span> W</p>
             </div>
-            <div class="arrow">→</div>
             <div class="box" id="limitBox">
                 <h2>Current Limit</h2>
                 <p>Limit: <span id="currentLimit">0</span> W</p>
@@ -87,6 +90,8 @@
 
                         let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
                         document.getElementById('totalConsumption').textContent = totalConsumption.toFixed(2);
+
+                        document.getElementById('shellyType').value = data.shelly.type;
                     });
             }
 
