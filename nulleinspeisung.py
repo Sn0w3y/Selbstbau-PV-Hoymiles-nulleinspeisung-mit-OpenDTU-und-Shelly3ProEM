@@ -1,71 +1,92 @@
 #!/usr/bin/env python3
-import requests, time, sys
+import requests
+import time
+import sys
+import logging
 from requests.auth import HTTPBasicAuth
 
+# Configuration settings
+config = {
+    'serial': '116494406970',
+    'maximum_wr': 1600,
+    'minimum_wr': 200,
+    'dtu_ip': '192.168.17.225',
+    'dtu_nutzer': 'admin',
+    'dtu_passwort': 'openDTU42',
+    'shelly_ip': '192.168.17.230'
+}
 
-# Diese Daten müssen angepasst werden:
-serial = "112100000000" # Seriennummer des Hoymiles Wechselrichters
-maximum_wr = 300 # Maximale Ausgabe des Wechselrichters
-minimum_wr = 100 # Minimale Ausgabe des Wechselrichters
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-dtu_ip = '192.100.100.20' # IP Adresse von OpenDTU
-dtu_nutzer = 'admin' # OpenDTU Nutzername
-dtu_passwort = 'openDTU42' # OpenDTU Passwort
+def fetch_dtu_data():
+    try:
+        url = f'http://{config["dtu_ip"]}/api/livedata/status?inv={config["serial"]}'
+        response = requests.get(url).json()
+        inverter = response['inverters'][0]
+        return {
+            'reachable': inverter['reachable'],
+            'producing': int(inverter['producing']),
+            'altes_limit': int(inverter['limit_absolute']),
+            'power_dc': inverter['DC']['0']['Power']['v'],
+            'power': inverter['AC']['0']['Power']['v']
+        }
+    except Exception as e:
+        logging.error(f'Error fetching DTU data: {e}')
+        return None
 
-shelly_ip = '192.100.100.30' # IP Adresse von Shelly 3EM
+def fetch_shelly_data():
+    try:
+        url = f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0'
+        response = requests.get(url, headers={'Content-Type': 'application/json'}).json()
+        return response['total_act_power']
+    except Exception as e:
+        logging.error(f'Error fetching Shelly data: {e}')
+        return None
 
+def set_inverter_limit(setpoint):
+    try:
+        url = f'http://{config["dtu_ip"]}/api/limit/config'
+        data = f'data={{"serial":"{config["serial"]}", "limit_type":0, "limit_value":{setpoint}}}'
+        response = requests.post(url, data=data, auth=HTTPBasicAuth(config['dtu_nutzer'], config['dtu_passwort']), headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        response_data = response.json()
+        logging.info(f'Configuration sent ({response_data["type"]})')
+    except Exception as e:
+        logging.error(f'Error sending inverter configuration: {e}')
 
 while True:
-    try:
-        # Nimmt Daten von der openDTU Rest-API und übersetzt sie in ein json-Format
-        r = requests.get(url = f'http://{dtu_ip}/api/livedata/status/inverters' ).json()
+    dtu_data = fetch_dtu_data()
+    if dtu_data is None:
+        continue
 
-        # Selektiert spezifische Daten aus der json response
-        reachable   = r['inverters'][0]['reachable'] # Ist DTU erreichbar?
-        producing   = int(r['inverters'][0]['producing']) # Produziert der Wechselrichter etwas?
-        altes_limit = int(r['inverters'][0]['limit_absolute']) # Altes Limit
-        power_dc    = r['inverters'][0]['AC']['0']['Power DC']['v']  # Lieferung DC vom Panel
-        power       = r['inverters'][0]['AC']['0']['Power']['v'] # Abgabe BKW AC in Watt
-    except:
-        print('Fehler beim Abrufen der Daten von openDTU')
-    try:
-        # Nimmt Daten von der Shelly 3EM Rest-API und übersetzt sie in ein json-Format
-        phase_a     = requests.get(f'http://{shelly_ip}/emeter/0', headers={'Content-Type': 'application/json'}).json()['power']
-        phase_b     = requests.get(f'http://{shelly_ip}/emeter/1', headers={'Content-Type': 'application/json'}).json()['power']
-        phase_c     = requests.get(f'http://{shelly_ip}/emeter/2', headers={'Content-Type': 'application/json'}).json()['power']
-        grid_sum    = phase_a + phase_b + phase_c # Aktueller Bezug - rechnet alle Phasen zusammen
-    except:
-        print('Fehler beim Abrufen der Daten von Shelly 3EM')
+    shelly_data = fetch_shelly_data()
+    if shelly_data is None:
+        continue
 
-    # Werte setzen
-    print(f'\nBezug: {round(grid_sum, 1)} W, Produktion: {round(power, 1)} W, Verbrauch: {round(grid_sum + power, 1)} W')
+    reachable = dtu_data['reachable']
+    producing = dtu_data['producing']
+    altes_limit = dtu_data['altes_limit']
+    power = dtu_data['power']
+
+    grid_sum = shelly_data
+
+    logging.info(f'Bezug: {grid_sum:.1f} W, Produktion: {power:.1f} W, Verbrauch: {(grid_sum + power):.1f} W')
+
     if reachable:
-        setpoint = grid_sum + altes_limit - 5 # Neues Limit in Watt
+        setpoint = grid_sum + altes_limit - 5
 
-        # Fange oberes Limit ab
-        if setpoint > maximum_wr:
-            setpoint = maximum_wr
-            print(f'Setpoint auf Maximum: {maximum_wr} W')
-        # Fange unteres Limit ab
-        elif setpoint < minimum_wr:
-            setpoint = minimum_wr
-            print(f'Setpoint auf Minimum: {minimum_wr} W')
+        if setpoint > config['maximum_wr']:
+            setpoint = config['maximum_wr']
+            logging.info(f'Setpoint auf Maximum: {config["maximum_wr"]} W')
+        elif setpoint < config['minimum_wr']:
+            setpoint = config['minimum_wr']
+            logging.info(f'Setpoint auf Minimum: {config["minimum_wr"]} W')
         else:
-            print(f'Setpoint berechnet: {round(grid_sum, 1)} W + {round(altes_limit, 1)} W - 5 W = {round(setpoint, 1)} W')
+            logging.info(f'Setpoint berechnet: {grid_sum:.1f} W + {altes_limit:.1f} W - 5 W = {setpoint:.1f} W')
 
         if setpoint != altes_limit:
-            print(f'Setze Inverterlimit von {round(altes_limit, 1)} W auf {round(setpoint, 1)} W... ', end='')
-            # Neues Limit setzen
-            try:
-                r = requests.post(
-                    url = f'http://{dtu_ip}/api/limit/config',
-                    data = f'data={{"serial":"{serial}", "limit_type":0, "limit_value":{setpoint}}}',
-                    auth = HTTPBasicAuth(dtu_nutzer, dtu_passwort),
-                    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-                )
-                print(f'Konfiguration gesendet ({r.json()["type"]})')
-            except:
-                print('Fehler beim Senden der Konfiguration')
+            logging.info(f'Setze Inverterlimit von {altes_limit:.1f} W auf {setpoint:.1f} W... ')
+            set_inverter_limit(setpoint)
 
-    sys.stdout.flush() # write out cached messages to stdout
-    time.sleep(5) # wait
+    sys.stdout.flush()
+    time.sleep(5)
