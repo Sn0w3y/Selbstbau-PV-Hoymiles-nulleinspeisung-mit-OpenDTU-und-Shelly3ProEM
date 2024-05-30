@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuration Dashboard</title>
+    <title>Konfigurations-Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Configuration Dashboard</h1>
+        <h1>Konfigurations-Dashboard</h1>
         <form method="POST" action="/">
             {{ form.hidden_tag() }}
             <div class="config-form">
@@ -29,7 +29,7 @@
                     {{ form.dtu_nutzer.label }} {{ form.dtu_nutzer(class="form-control") }}
                 </div>
                 <div class="form-group">
-                    {{ form.dtu_passwort.label }} {{ form.dtu_passwort(class="form-control") }}
+                    {{ form.dtu_passwort.label }} {{ form.dtu_passwort(class="form-control", type="password") }}
                 </div>
                 <div class="form-group">
                     {{ form.shelly_ip.label }} {{ form.shelly_ip(class="form-control") }}
@@ -38,7 +38,7 @@
                     {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
                 </div>
                 <div class="form-group">
-                    <label for="shellyType">Detected Shelly Type</label>
+                    <label for="shellyType">Erkannter Shelly-Typ</label>
                     <input type="text" id="shellyType" class="form-control" readonly>
                 </div>
             </div>
@@ -48,28 +48,28 @@
         </form>
         <div class="form-actions">
             <form method="POST" action="/start_auto" class="inline-form">
-                <button type="submit" class="btn btn-success">Start AUTO Mode</button>
+                <button type="submit" class="btn btn-success">AUTO-Modus starten</button>
             </form>
             <form method="POST" action="/stop_auto" class="inline-form">
-                <button type="submit" class="btn btn-danger">Stop AUTO Mode</button>
+                <button type="submit" class="btn btn-danger">AUTO-Modus stoppen</button>
             </form>
         </div>
         <div class="flow-diagram">
             <div class="box" id="dtuBox">
                 <h2>DTU</h2>
-                <p>Status: <span id="dtuProducing">abrufen..</span> </p>
-                <p>Leistung DC: <span id="dtuPowerDC">abrufen..</span></p>
-                <p>Leistung AC: <span id="dtuPowerAC">abrufen..</span></p>
+                <p>Status: <span id="dtuProducing">Abrufen...</span> </p>
+                <p>Leistung DC: <span id="dtuPowerDC">Abrufen...</span></p>
+                <p>Leistung AC: <span id="dtuPowerAC">Abrufen...</span></p>
             </div>
             <div class="arrow">→</div>
             <div class="box" id="shellyBox">
                 <h2>Shelly</h2>
-                <p><span id="shellyPower">abrufen..</span></p>
-                <p>Verbrauch: <span id="totalConsumption">abrufen..</span></p>
+                <p><span id="shellyPower">Abrufen...</span></p>
+                <p>Verbrauch: <span id="totalConsumption">Abrufen...</span></p>
             </div>
             <div class="box" id="limitBox">
-                <h2>Current Limit</h2>
-                <p>Limit: <span id="currentLimit">abrufen..</span></p>
+                <h2>Aktuelles Limit</h2>
+                <p>Limit: <span id="currentLimit">Abrufen...</span></p>
             </div>
         </div>
     </div>
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 document.getElementById('dtuProducing').textContent = data.dtu.producing === 1 ? "Produzieren" : "Standby";
-                document.getElementById('dtuPowerDC').textContent = `${Math.abs(data.dtu.power_dc).toFixed(2)} W`;
+                document.getElementById('dtuPowerDC').textContent = `${Math.abs(data.dtu.power_dc) < 2 ? 0 : Math.abs(data.dtu.power_dc).toFixed(2)} W`;
                 document.getElementById('dtuPowerAC').textContent = `${Math.abs(data.dtu.power).toFixed(2)} W`;
 
                 let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
@@ -97,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setInterval(updateFlowDiagram, 5000);
 });
-
     </script>
 </body>
 </html>

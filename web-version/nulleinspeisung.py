@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, redirect, url_for, jsonify
 import threading
 import time
 from requests.auth import HTTPBasicAuth
@@ -29,18 +29,16 @@ config = {
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
 class ConfigForm(FlaskForm):
-    serial = StringField('Serial', validators=[DataRequired()])
-    maximum_wr = IntegerField('Maximum WR', validators=[DataRequired()])
-    minimum_wr = IntegerField('Minimum WR', validators=[DataRequired()])
-    dtu_ip = StringField('DTU IP', validators=[DataRequired()])
-    dtu_nutzer = StringField('DTU Nutzer', validators=[DataRequired()])
-    dtu_passwort = StringField('DTU Passwort', validators=[DataRequired()])
-    shelly_ip = StringField('Shelly IP', validators=[DataRequired()])
-    manual_limit = IntegerField('Manual Limit (W)', validators=[DataRequired()])
-    submit = SubmitField('Save')
-
+    serial = StringField('Seriennummer:', validators=[DataRequired()])
+    maximum_wr = IntegerField('WR max. Leistung:', validators=[DataRequired()])
+    minimum_wr = IntegerField('WR min. Leistung:', validators=[DataRequired()])
+    dtu_ip = StringField('DTU IP:', validators=[DataRequired()])
+    dtu_nutzer = StringField('DTU Benutzer:', validators=[DataRequired()])
+    dtu_passwort = StringField('DTU Passwort:', validators=[DataRequired()])
+    shelly_ip = StringField('Shelly IP:', validators=[DataRequired()])
+    manual_limit = IntegerField('Manuelles Limit (W):', validators=[DataRequired()])
+    submit = SubmitField('Speichern')
 
 def detect_shelly_type():
     try:
@@ -58,7 +56,6 @@ def detect_shelly_type():
     except requests.RequestException as e:
         logging.error(f'Error detecting Shelly type: {e}')
     return None
-
 
 def fetch_dtu_data() -> Optional[Dict[str, Any]]:
     try:
@@ -81,7 +78,6 @@ def fetch_dtu_data() -> Optional[Dict[str, Any]]:
         logging.error(f'Error fetching DTU data: {e}')
     return None
 
-
 def fetch_json_data(url: str) -> Optional[Dict[str, Any]]:
     try:
         response = requests.get(url, headers={'Content-Type': 'application/json'})
@@ -91,31 +87,36 @@ def fetch_json_data(url: str) -> Optional[Dict[str, Any]]:
         logging.error(f'Error fetching data from {url}: {e}')
     return None
 
-
 def fetch_shelly_data() -> Optional[Dict[str, Any]]:
     shelly_ip = config.get("shelly_ip")
     if not shelly_ip:
         logging.error("Shelly IP is not configured")
         return None
 
+    if config['shelly_type'] is None:
+        config['shelly_type'] = detect_shelly_type()
+
     urls = {
         'Pro 3 EM': f'http://{shelly_ip}/rpc/EM.GetStatus?id=0',
         '3 EM': f'http://{shelly_ip}/status'
     }
 
-    for device_type, url in urls.items():
-        data = fetch_json_data(url)
-        if data:
-            if device_type == 'Pro 3 EM' and 'total_act_power' in data:
-                logging.info(f"{device_type} data fetched")
-                return {'type': device_type, 'total_act_power': data['total_act_power']}
-            elif device_type == '3 EM' and 'total_power' in data:
-                logging.info(f"{device_type} data fetched")
-                return {'type': device_type, 'total_act_power': data['total_power']}
+    if config['shelly_type'] not in urls:
+        logging.error("Invalid Shelly type detected")
+        return None
+
+    url = urls[config['shelly_type']]
+    data = fetch_json_data(url)
+    if data:
+        if config['shelly_type'] == 'Pro 3 EM' and 'total_act_power' in data:
+            logging.info(f"{config['shelly_type']} data fetched")
+            return {'type': config['shelly_type'], 'total_act_power': data['total_act_power']}
+        elif config['shelly_type'] == '3 EM' and 'total_power' in data:
+            logging.info(f"{config['shelly_type']} data fetched")
+            return {'type': config['shelly_type'], 'total_act_power': data['total_power']}
 
     logging.error("Could not fetch Shelly data")
     return None
-
 
 def set_inverter_limit(setpoint: int) -> Optional[Dict[str, Any]]:
     try:
@@ -130,7 +131,6 @@ def set_inverter_limit(setpoint: int) -> Optional[Dict[str, Any]]:
     except (requests.RequestException, KeyError) as e:
         logging.error(f'Error sending inverter configuration: {e}')
     return None
-
 
 def auto_mode_loop():
     while True:
@@ -163,7 +163,6 @@ def auto_mode_loop():
 
         time.sleep(5)
 
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = ConfigForm()
@@ -176,9 +175,10 @@ def index():
             dtu_nutzer=form.dtu_nutzer.data,
             dtu_passwort=form.dtu_passwort.data,
             shelly_ip=form.shelly_ip.data,
-            manual_limit=form.manual_limit.data,
-            shelly_type=detect_shelly_type()
+            manual_limit=form.manual_limit.data
         )
+        if config['shelly_type'] is None:
+            config['shelly_type'] = detect_shelly_type()
         return redirect(url_for('index'))
 
     form.serial.data = config['serial']
@@ -192,20 +192,17 @@ def index():
 
     return render_template('index.html', form=form, auto_mode=config['auto_mode'])
 
-
 @app.route('/start_auto', methods=['POST'])
 def start_auto():
     config['auto_mode'] = True
     logging.info("Auto mode started")
     return redirect(url_for('index'))
 
-
 @app.route('/stop_auto', methods=['POST'])
 def stop_auto():
     config['auto_mode'] = False
     logging.info("Auto mode stopped")
     return redirect(url_for('index'))
-
 
 @app.route('/data', methods=['GET'])
 def get_data():
@@ -222,7 +219,6 @@ def get_data():
         'shelly': shelly_data,
         'current_limit': config['manual_limit'] if not config['auto_mode'] else dtu_data['altes_limit']
     })
-
 
 if __name__ == '__main__':
     auto_thread = threading.Thread(target=auto_mode_loop, daemon=True)
