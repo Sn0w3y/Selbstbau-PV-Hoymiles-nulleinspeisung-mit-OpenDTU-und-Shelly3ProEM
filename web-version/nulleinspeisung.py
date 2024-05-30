@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, jsonify
+from flask import Flask, render_template, redirect, url_for, jsonify, request
 import threading
 import time
 from requests.auth import HTTPBasicAuth
@@ -26,8 +26,11 @@ config = {
     'manual_limit': None
 }
 
+reachable = None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class ConfigForm(FlaskForm):
     serial = StringField('Seriennummer:', validators=[DataRequired()])
@@ -40,14 +43,17 @@ class ConfigForm(FlaskForm):
     manual_limit = IntegerField('Manuelles Limit (W):', validators=[DataRequired()])
     submit = SubmitField('Speichern')
 
+
 def detect_shelly_type():
     try:
-        response_pro = requests.get(f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0', headers={'Content-Type': 'application/json'})
+        response_pro = requests.get(f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0',
+                                    headers={'Content-Type': 'application/json'})
         if response_pro.status_code == 200:
             logging.info("Shelly Pro 3 EM detected")
             return 'Pro 3 EM'
 
-        response_3em = requests.get(f'http://{config["shelly_ip"]}/status', headers={'Content-Type': 'application/json'})
+        response_3em = requests.get(f'http://{config["shelly_ip"]}/status',
+                                    headers={'Content-Type': 'application/json'})
         if response_3em.status_code == 200:
             logging.info("Shelly 3 EM detected")
             return '3 EM'
@@ -56,6 +62,7 @@ def detect_shelly_type():
     except requests.RequestException as e:
         logging.error(f'Error detecting Shelly type: {e}')
     return None
+
 
 def fetch_dtu_data() -> Optional[Dict[str, Any]]:
     try:
@@ -78,6 +85,7 @@ def fetch_dtu_data() -> Optional[Dict[str, Any]]:
         logging.error(f'Error fetching DTU data: {e}')
     return None
 
+
 def fetch_json_data(url: str) -> Optional[Dict[str, Any]]:
     try:
         response = requests.get(url, headers={'Content-Type': 'application/json'})
@@ -86,6 +94,7 @@ def fetch_json_data(url: str) -> Optional[Dict[str, Any]]:
     except requests.RequestException as e:
         logging.error(f'Error fetching data from {url}: {e}')
     return None
+
 
 def fetch_shelly_data() -> Optional[Dict[str, Any]]:
     shelly_ip = config.get("shelly_ip")
@@ -118,6 +127,7 @@ def fetch_shelly_data() -> Optional[Dict[str, Any]]:
     logging.error("Could not fetch Shelly data")
     return None
 
+
 def set_inverter_limit(setpoint: int) -> Optional[Dict[str, Any]]:
     try:
         url = f'http://{config["dtu_ip"]}/api/limit/config'
@@ -132,9 +142,12 @@ def set_inverter_limit(setpoint: int) -> Optional[Dict[str, Any]]:
         logging.error(f'Error sending inverter configuration: {e}')
     return None
 
+
 def auto_mode_loop():
+    global reachable
     while True:
         if config['auto_mode']:
+            logging.info("Auto mode is enabled")
             dtu_data = fetch_dtu_data()
             if dtu_data is None:
                 time.sleep(5)
@@ -160,8 +173,10 @@ def auto_mode_loop():
                 if setpoint != altes_limit:
                     logging.info(f'Setting inverter limit from {altes_limit:.1f} W to {setpoint:.1f} W...')
                     set_inverter_limit(setpoint)
-
+        else:
+            logging.info("Auto mode is disabled")
         time.sleep(5)
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -179,6 +194,11 @@ def index():
         )
         if config['shelly_type'] is None:
             config['shelly_type'] = detect_shelly_type()
+
+        if not config['auto_mode'] and config['manual_limit'] is not None:
+            logging.info(f"Setting manual inverter limit: {config['manual_limit']} W")
+            set_inverter_limit(config['manual_limit'])
+
         return redirect(url_for('index'))
 
     form.serial.data = config['serial']
@@ -192,17 +212,20 @@ def index():
 
     return render_template('index.html', form=form, auto_mode=config['auto_mode'])
 
+
 @app.route('/start_auto', methods=['POST'])
 def start_auto():
     config['auto_mode'] = True
     logging.info("Auto mode started")
     return redirect(url_for('index'))
 
+
 @app.route('/stop_auto', methods=['POST'])
 def stop_auto():
     config['auto_mode'] = False
     logging.info("Auto mode stopped")
     return redirect(url_for('index'))
+
 
 @app.route('/data', methods=['GET'])
 def get_data():
@@ -214,11 +237,35 @@ def get_data():
     if shelly_data is None:
         return jsonify({'error': 'Failed to fetch Shelly data'}), 500
 
+    if config['auto_mode']:
+        current_limit = dtu_data['altes_limit']
+    elif config['manual_limit'] is not None:
+        current_limit = config['manual_limit']
+    else:
+        current_limit = dtu_data['altes_limit']
+
     return jsonify({
         'dtu': dtu_data,
         'shelly': shelly_data,
-        'current_limit': config['manual_limit'] if not config['auto_mode'] else dtu_data['altes_limit']
+        'current_limit': current_limit,
+        'auto_mode': config['auto_mode']
     })
+
+
+@app.route('/set_manual_limit', methods=['POST'])
+def set_manual_limit():
+    limit = request.json.get('limit')
+    if limit is not None and not config['auto_mode']:
+        if reachable:
+            config['manual_limit'] = limit
+            logging.info(f"Setting manual inverter limit: {limit} W")
+            set_inverter_limit(limit)
+            return jsonify({'status': 'success'}), 200
+        else:
+            logging.info("Setting manual inverter is not possible - inverter not reachable!")
+            return jsonify({'status': 'failure', 'reason': 'unreachable'}), 400
+    return jsonify({'status': 'failure', 'reason': 'Auto mode is enabled or invalid limit'}), 400
+
 
 if __name__ == '__main__':
     auto_thread = threading.Thread(target=auto_mode_loop, daemon=True)

@@ -95,10 +95,12 @@ if config['shelly_type'] is None:
 while True:
     dtu_data = fetch_dtu_data()
     if dtu_data is None:
+        time.sleep(5)
         continue
 
     shelly_data = fetch_shelly_data()
     if shelly_data is None:
+        time.sleep(5)
         continue
 
     reachable = dtu_data['reachable']

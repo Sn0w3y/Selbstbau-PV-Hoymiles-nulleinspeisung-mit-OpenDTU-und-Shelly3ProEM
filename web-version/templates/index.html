@@ -6,6 +6,9 @@
     <title>Konfigurations-Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -47,12 +50,8 @@
             </div>
         </form>
         <div class="form-actions">
-            <form method="POST" action="/start_auto" class="inline-form">
-                <button type="submit" class="btn btn-success">AUTO-Modus starten</button>
-            </form>
-            <form method="POST" action="/stop_auto" class="inline-form">
-                <button type="submit" class="btn btn-danger">AUTO-Modus stoppen</button>
-            </form>
+            <button id="autoModeButton" class="btn" onclick="toggleAutoMode()">AUTO-Modus starten</button>
+            <button id="setManualLimitButton" class="btn btn-warning" onclick="setManualLimit()">Manuelles Limit setzen</button>
         </div>
         <div class="flow-diagram">
             <div class="box" id="dtuBox">
@@ -86,16 +85,81 @@ document.addEventListener('DOMContentLoaded', function() {
                 let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
                 document.getElementById('shellyPower').textContent = `${shellyStatus}: ${Math.abs(data.shelly.total_act_power).toFixed(2)} W`;
 
-                document.getElementById('currentLimit').textContent = `${data.current_limit} W`;
+                document.getElementById('currentLimit').textContent = data.current_limit !== 'N/A' ? `${data.current_limit} W` : 'N/A';
 
                 let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
                 document.getElementById('totalConsumption').textContent = `${totalConsumption.toFixed(2)} W`;
 
                 document.getElementById('shellyType').value = data.shelly.type;
+
+                updateAutoModeButton(data.auto_mode);
             });
     }
 
+    function updateAutoModeButton(auto_mode) {
+        const autoModeButton = document.getElementById('autoModeButton');
+        const manualLimitButton = document.getElementById('setManualLimitButton');
+
+        if (auto_mode) {
+            autoModeButton.textContent = 'AUTO-Modus stoppen';
+            autoModeButton.classList.remove('btn-success');
+            autoModeButton.classList.add('btn-danger');
+            manualLimitButton.disabled = true; // Disable manual limit button
+        } else {
+            autoModeButton.textContent = 'AUTO-Modus starten';
+            autoModeButton.classList.remove('btn-danger');
+            autoModeButton.classList.add('btn-success');
+            manualLimitButton.disabled = false; // Enable manual limit button
+        }
+        console.log(auto_mode ? 'AUTO-Modus ist aktiviert' : 'AUTO-Modus ist deaktiviert');
+    }
+
+    function toggleAutoMode() {
+        const button = document.getElementById('autoModeButton');
+        const isAutoMode = button.textContent === 'AUTO-Modus stoppen';
+        fetch(isAutoMode ? '/stop_auto' : '/start_auto', { method: 'POST' })
+            .then(() => {
+                setTimeout(updateFlowDiagram, 1000); // Ensure the button state updates after server-side state changes
+            });
+    }
+
+    function setManualLimit() {
+        const manualLimit = document.querySelector('input[name="manual_limit"]').value;
+        fetch('/set_manual_limit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ limit: parseInt(manualLimit) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                toastr.success('Manuelles Limit erfolgreich gesetzt.');
+                console.log('Manual limit set successfully');
+                updateFlowDiagram();
+            } else {
+                console.error('Failed to set manual limit', data.reason);
+                if (data.reason.includes('Auto mode is enabled')) {
+                    toastr.error('Manuelles Limit kann nicht gesetzt werden, da der AUTO-Modus aktiviert ist.');
+                } else if (data.reason.includes('unreachable')) {
+                    toastr.error('Manuelles Limit kann nicht gesetzt werden, da der Wechselrichter nicht erreichbar ist.');
+                } else {
+                    toastr.error('Manuelles Limit konnte nicht gesetzt werden.');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error setting manual limit:', error);
+            toastr.error('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+        });
+    }
+
     setInterval(updateFlowDiagram, 5000);
+    updateFlowDiagram(); // Initial call to set the button state on page load
+
+    window.toggleAutoMode = toggleAutoMode; // Expose function to global scope
+    window.setManualLimit = setManualLimit; // Expose function to global scope
 });
     </script>
 </body>
