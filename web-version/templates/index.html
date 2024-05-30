@@ -57,46 +57,47 @@
         <div class="flow-diagram">
             <div class="box" id="dtuBox">
                 <h2>DTU</h2>
-                <p>Status: <span id="dtuProducing">-</span> </p>
-                <p>Leistung DC: <span id="dtuPowerDC">-</span> W</p>
-                <p>Leistung AC: <span id="dtuPowerAC">-</span> W</p>
+                <p>Status: <span id="dtuProducing">abrufen..</span> </p>
+                <p>Leistung DC: <span id="dtuPowerDC">abrufen..</span></p>
+                <p>Leistung AC: <span id="dtuPowerAC">abrufen..</span></p>
             </div>
             <div class="arrow">→</div>
             <div class="box" id="shellyBox">
                 <h2>Shelly</h2>
-                <p><span id="shellyPower">-</span> W</p>
-                <p>Verbrauch: <span id="totalConsumption">-</span> W</p>
+                <p><span id="shellyPower">abrufen..</span></p>
+                <p>Verbrauch: <span id="totalConsumption">abrufen..</span></p>
             </div>
             <div class="box" id="limitBox">
                 <h2>Current Limit</h2>
-                <p>Limit: <span id="currentLimit">0</span> W</p>
+                <p>Limit: <span id="currentLimit">abrufen..</span></p>
             </div>
         </div>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            function updateFlowDiagram() {
-                fetch('/data')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('dtuProducing').textContent = data.dtu.producing === 1 ? "Produzieren" : "Standby";
-                        document.getElementById('dtuPowerDC').textContent = Math.abs(data.dtu.power_dc).toFixed(2);
-                        document.getElementById('dtuPowerAC').textContent = Math.abs(data.dtu.power).toFixed(2);
+document.addEventListener('DOMContentLoaded', function() {
+    function updateFlowDiagram() {
+        fetch('/data')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('dtuProducing').textContent = data.dtu.producing === 1 ? "Produzieren" : "Standby";
+                document.getElementById('dtuPowerDC').textContent = `${Math.abs(data.dtu.power_dc).toFixed(2)} W`;
+                document.getElementById('dtuPowerAC').textContent = `${Math.abs(data.dtu.power).toFixed(2)} W`;
 
-                        let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
-                        document.getElementById('shellyPower').textContent = `${shellyStatus}: ${Math.abs(data.shelly.total_act_power).toFixed(2)}`;
+                let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
+                document.getElementById('shellyPower').textContent = `${shellyStatus}: ${Math.abs(data.shelly.total_act_power).toFixed(2)} W`;
 
-                        document.getElementById('currentLimit').textContent = data.current_limit;
+                document.getElementById('currentLimit').textContent = `${data.current_limit} W`;
 
-                        let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
-                        document.getElementById('totalConsumption').textContent = totalConsumption.toFixed(2);
+                let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
+                document.getElementById('totalConsumption').textContent = `${totalConsumption.toFixed(2)} W`;
 
-                        document.getElementById('shellyType').value = data.shelly.type;
-                    });
-            }
+                document.getElementById('shellyType').value = data.shelly.type;
+            });
+    }
 
-            setInterval(updateFlowDiagram, 5000);
-        });
+    setInterval(updateFlowDiagram, 5000);
+});
+
     </script>
 </body>
 </html>
