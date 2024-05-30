@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">Configuration Dashboard</div>
+    </nav>
+    <div class="container">
+        <h1>Configuration Dashboard</h1>
+        <form method="POST" class="config-form">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.serial.label }} {{ form.serial(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.maximum_wr.label }} {{ form.maximum_wr(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.minimum_wr.label }} {{ form.minimum_wr(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.dtu_ip.label }} {{ form.dtu_ip(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.dtu_nutzer.label }} {{ form.dtu_nutzer(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.dtu_passwort.label }} {{ form.dtu_passwort(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.shelly_ip.label }} {{ form.shelly_ip(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.shelly_type.label }} {{ form.shelly_type(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
+            </div>
+            <div class="form-actions">
+                {{ form.submit(class="btn btn-primary") }}
+                {% if auto_mode %}
+                    {{ form.stop_auto(class="btn btn-danger") }}
+                {% else %}
+                    {{ form.start_auto(class="btn btn-success") }}
+                {% endif %}
+            </div>
+        </form>
+        <div class="flow-diagram">
+            <div class="box" id="dtuBox">
+                <h2>DTU</h2>
+                <p>Status: <span id="dtuProducing">-</span> </p>
+                <p>Leistung DC: <span id="dtuPowerDC">-</span> W</p>
+                <p>Leistung AC: <span id="dtuPowerAC">-</span> W</p>
+            </div>
+            <div class="arrow">→</div>
+            <div class="box" id="shellyBox">
+                <h2>Shelly</h2>
+                <p><span id="shellyPower">-</span> W</p>
+                <p>Verbrauch: <span id="totalConsumption">-</span> W</p>
+            </div>
+            <div class="arrow">→</div>
+            <div class="box" id="limitBox">
+                <h2>Current Limit</h2>
+                <p>Limit: <span id="currentLimit">0</span> W</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function updateFlowDiagram() {
+                fetch('/data')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('dtuProducing').textContent = data.dtu.producing === 1 ? "Produzieren" : "Standby";
+                        document.getElementById('dtuPowerDC').textContent = Math.abs(data.dtu.power_dc).toFixed(2);
+                        document.getElementById('dtuPowerAC').textContent = Math.abs(data.dtu.power).toFixed(2);
+
+                        let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
+                        document.getElementById('shellyPower').textContent = `${shellyStatus}: ${Math.abs(data.shelly.total_act_power).toFixed(2)}`;
+
+                        document.getElementById('currentLimit').textContent = data.current_limit;
+
+                        let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
+                        document.getElementById('totalConsumption').textContent = totalConsumption.toFixed(2);
+                    });
+            }
+
+            setInterval(updateFlowDiagram, 5000);
+        });
+    </script>
+</body>
+</html>
