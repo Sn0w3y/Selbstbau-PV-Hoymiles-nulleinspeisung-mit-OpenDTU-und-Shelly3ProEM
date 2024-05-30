@@ -41,7 +41,7 @@
                     {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
                 </div>
                 <div class="form-group">
-                    <label for="shellyType">Erkannter Shelly-Typ</label>
+                    <label for="shellyType">Erkannter Shelly-Typ:</label>
                     <input type="text" id="shellyType" class="form-control" readonly>
                 </div>
             </div>
@@ -50,7 +50,7 @@
             </div>
         </form>
         <div class="form-actions">
-            <button id="autoModeButton" class="btn" onclick="toggleAutoMode()">AUTO-Modus starten</button>
+            <button id="autoModeButton" class="btn btn-success" onclick="toggleAutoMode()">AUTO-Modus starten</button>
             <button id="setManualLimitButton" class="btn btn-warning" onclick="setManualLimit()">Manuelles Limit setzen</button>
         </div>
         <div class="flow-diagram">
@@ -105,11 +105,13 @@ document.addEventListener('DOMContentLoaded', function() {
             autoModeButton.classList.remove('btn-success');
             autoModeButton.classList.add('btn-danger');
             manualLimitButton.disabled = true; // Disable manual limit button
+            manualLimitButton.classList.add('disabled');
         } else {
             autoModeButton.textContent = 'AUTO-Modus starten';
             autoModeButton.classList.remove('btn-danger');
             autoModeButton.classList.add('btn-success');
             manualLimitButton.disabled = false; // Enable manual limit button
+            manualLimitButton.classList.remove('disabled');
         }
         console.log(auto_mode ? 'AUTO-Modus ist aktiviert' : 'AUTO-Modus ist deaktiviert');
     }
@@ -155,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    setInterval(updateFlowDiagram, 5000);
+    setInterval(updateFlowDiagram, 1000);
     updateFlowDiagram(); // Initial call to set the button state on page load
 
     window.toggleAutoMode = toggleAutoMode; // Expose function to global scope

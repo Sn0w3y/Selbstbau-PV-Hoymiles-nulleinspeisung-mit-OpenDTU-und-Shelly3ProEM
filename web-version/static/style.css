@@ -25,6 +25,17 @@ h1 {
     font-size: 2.2em;
     font-weight: 700;
     transition: color 0.3s ease;
+    position: relative;
+}
+
+h1:after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: #007bff;
+    margin: 10px auto 0;
+    border-radius: 2px;
 }
 
 .config-form {
@@ -98,6 +109,22 @@ h1 {
 .btn-danger:hover {
     background: linear-gradient(135deg, #c82333 0%, #a71d2a 100%);
     transform: translateY(-3px);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #e0a800 0%, #c69500 100%);
+    transform: translateY(-3px);
+}
+
+.btn:disabled {
+    background: linear-gradient(135deg, #e0e0e0 0%, #b3b3b3 100%);
+    color: #666666;
+    cursor: not-allowed;
 }
 
 .flow-diagram {
