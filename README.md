@@ -74,7 +74,7 @@ sudo systemctl status nulleinspeisung.service
 Standardmäßig läuft Flask auf Port 5000. Sie können die Anwendung öffnen, indem Sie in Ihrem Webbrowser zu `http://<Ihre-Raspberry-Pi-IP>:5000/` navigieren.
 Falls Sie sich für die Console-Version entschieden haben, läuft diese nur in der Konsole!
 
-## requirements.txt
+## requirements.txt für die Web-Version - für die Console-Version wird dies nicht benötigt !
 ```
 Flask==2.1.2
 Flask-WTF==1.0.1
