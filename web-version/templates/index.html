@@ -40,10 +40,6 @@
                 <div class="form-group">
                     {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
                 </div>
-                <div class="form-group">
-                    <label for="shellyType">Erkannter Shelly-Typ:</label>
-                    <input type="text" id="shellyType" class="form-control" readonly>
-                </div>
             </div>
             <div class="form-actions">
                 {{ form.submit(class="btn btn-primary") }}
@@ -62,7 +58,7 @@
             </div>
             <div class="arrow">→</div>
             <div class="box" id="shellyBox">
-                <h2>Shelly</h2>
+                <h2>Shelly (<span id="shellyTypeHeader">Abrufen...</span>)</h2>
                 <p><span id="shellyPower">Abrufen...</span></p>
                 <p>Verbrauch: <span id="totalConsumption">Abrufen...</span></p>
             </div>
@@ -90,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
                 document.getElementById('totalConsumption').textContent = `${totalConsumption.toFixed(2)} W`;
 
-                document.getElementById('shellyType').value = data.shelly.type;
+                document.getElementById('shellyTypeHeader').textContent = data.shelly.type;
 
                 updateAutoModeButton(data.auto_mode);
             });
