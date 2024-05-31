@@ -1,55 +1,87 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const invertersContainer = document.getElementById('invertersContainer');
+    const shellyContainer = document.getElementById('shellyContainer');
+    const autoModeButton = document.getElementById('autoModeButton');
+    const inverterSelect = document.getElementById('inverterSelect');
+    const manualButton = document.getElementById('setManualLimitButton'); // Ensure this ID is correct
+
+    function createInverterBox(inverter, index) {
+        return `
+            <div class="box" id="inverterBox${index}">
+                <h2>Inverter ${index + 1}</h2>
+                <p>Name: ${inverter.name}</p>
+                <p>Status: ${inverter.producing === 1 ? "Produzieren" : "Standby"}</p>
+                <p>Leistung DC: ${Math.abs(inverter.power_dc) < 2 ? 0 : Math.abs(inverter.power_dc).toFixed(2)} W</p>
+                <p>Leistung AC: ${Math.abs(inverter.power).toFixed(2)} W</p>
+                <p>Limit: ${inverter.altes_limit} W</p>
+            </div>
+        `;
+    }
+
+    function renderInverters(config) {
+        if (config.inverters && config.inverters.length > 0) {
+            invertersContainer.innerHTML = config.inverters.map((inverter, index) => createInverterBox(inverter, index)).join('');
+        } else {
+            invertersContainer.innerHTML = '<p>No inverters configured.</p>';
+        }
+    }
+
     function updateFlowDiagram() {
         fetch('/data')
             .then(response => response.json())
             .then(data => {
-                document.getElementById('name').textContent = data.dtu.name;
-                document.getElementById('dtuProducing').textContent = data.dtu.producing === 1 ? "Produzieren" : "Standby";
-                document.getElementById('dtuPowerDC').textContent = `${Math.abs(data.dtu.power_dc) < 2 ? 0 : Math.abs(data.dtu.power_dc).toFixed(2)} W`;
-                document.getElementById('dtuPowerAC').textContent = `${Math.abs(data.dtu.power).toFixed(2)} W`;
-                let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
-                document.getElementById('shellyPower').textContent = `${shellyStatus}: ${Math.abs(data.shelly.total_act_power).toFixed(2)} W`;
-                document.getElementById('currentLimit').textContent = data.current_limit !== 'N/A' ? `${data.current_limit} W` : 'N/A';
-                let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
-                document.getElementById('totalConsumption').textContent = `${totalConsumption.toFixed(2)} W`;
-                document.getElementById('shellyTypeHeader').textContent = data.shelly.type;
-                updateAutoModeButton(data.auto_mode);
-                updateGridArrow(data.shelly.total_act_power);
+                console.log(data); // Log the data structure
+                if (data.inverters && data.inverters.length > 0) {
+                    invertersContainer.innerHTML = data.inverters.map((inverter, index) => createInverterBox(inverter, index)).join('');
+                } else {
+                    invertersContainer.innerHTML = '<p>No inverters configured.</p>';
+                }
+
+                const totalACPower = data.inverters.reduce((sum, inverter) => sum + inverter.power, 0);
+                const verbrauch = totalACPower + data.shelly.total_act_power;
+
+                if (data.shelly) {
+                    shellyContainer.innerHTML = `
+                        <div class="box" id="shellyBox">
+                            <h2>Shelly (${data.shelly.type})</h2>
+                            <p>${data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug"}: ${Math.abs(data.shelly.total_act_power).toFixed(2)} W</p>
+                            <p>Verbrauch: ${verbrauch.toFixed(2)} W</p>
+                        </div>
+                    `;
+                }
+
+                // Update auto mode button state
+                autoModeButton.textContent = data.auto_mode ? 'AUTO-Modus stoppen' : 'AUTO-Modus starten';
+                autoModeButton.classList.toggle('btn-success', !data.auto_mode);
+                autoModeButton.classList.toggle('btn-danger', data.auto_mode);
+
+                // Show/hide manual button and dropdown based on auto mode state
+                if (data.auto_mode) {
+                    manualButton.style.display = 'none';
+                    inverterSelect.style.display = 'none';
+                } else {
+                    manualButton.style.display = 'inline-block';
+                    inverterSelect.style.display = 'inline-block';
+
+                    // Update reachable inverters dropdown
+                    fetch('/reachable_inverters')
+                        .then(response => response.json())
+                        .then(reachableInverters => {
+                            console.log(reachableInverters); // Log reachable inverters data
+                            inverterSelect.innerHTML = reachableInverters.map(inverter =>
+                                `<option value="${inverter.serial}">${inverter.name} (${inverter.serial})</option>`
+                            ).join('');
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                invertersContainer.innerHTML = '<p>Fehler beim Laden der Daten.</p>';
             });
     }
 
-    function updateAutoModeButton(auto_mode) {
-        const autoModeButton = document.getElementById('autoModeButton');
-        const manualLimitButton = document.getElementById('setManualLimitButton');
-        if (auto_mode) {
-            autoModeButton.textContent = 'AUTO-Modus stoppen';
-            autoModeButton.classList.remove('btn-success');
-            autoModeButton.classList.add('btn-danger');
-            manualLimitButton.disabled = true;
-            manualLimitButton.classList.add('disabled');
-        } else {
-            autoModeButton.textContent = 'AUTO-Modus starten';
-            autoModeButton.classList.remove('btn-danger');
-            autoModeButton.classList.add('btn-success');
-            manualLimitButton.disabled = false;
-            manualLimitButton.classList.remove('disabled');
-        }
-    }
-
-    function updateGridArrow(power) {
-        const gridArrow = document.getElementById('gridArrow');
-        if (power < 0) {
-            gridArrow.classList.remove('to-shelly');
-            gridArrow.classList.add('from-shelly');
-        } else {
-            gridArrow.classList.remove('from-shelly');
-            gridArrow.classList.add('to-shelly');
-        }
-    }
-
     function toggleAutoMode() {
-        const button = document.getElementById('autoModeButton');
-        const isAutoMode = button.textContent === 'AUTO-Modus stoppen';
+        const isAutoMode = autoModeButton.textContent === 'AUTO-Modus stoppen';
         fetch(isAutoMode ? '/stop_auto' : '/start_auto', { method: 'POST' })
             .then(() => {
                 setTimeout(updateFlowDiagram, 1000);
@@ -57,13 +89,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function setManualLimit() {
-        const manualLimit = document.querySelector('input[name="manual_limit"]').value;
+        const manualLimit = prompt('Manuelles Limit setzen:');
+        const selectedInverter = inverterSelect.value;
         fetch('/set_manual_limit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ limit: parseInt(manualLimit) })
+            body: JSON.stringify({ serial: selectedInverter, limit: parseInt(manualLimit) })
         })
         .then(response => response.json())
         .then(data => {
@@ -71,13 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 toastr.success('Manuelles Limit erfolgreich gesetzt.');
                 updateFlowDiagram();
             } else {
-                if (data.reason.includes('Auto mode is enabled')) {
-                    toastr.error('Manuelles Limit kann nicht gesetzt werden, da der AUTO-Modus aktiviert ist.');
-                } else if (data.reason.includes('unreachable')) {
-                    toastr.error('Manuelles Limit kann nicht gesetzt werden, da der Wechselrichter nicht erreichbar ist.');
-                } else {
-                    toastr.error('Manuelles Limit konnte nicht gesetzt werden.');
-                }
+                toastr.error('Fehler beim Setzen des manuellen Limits.');
             }
         })
         .catch(error => {
@@ -85,7 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    setInterval(updateFlowDiagram, 1000);
+    renderInverters(config);
+    setInterval(updateFlowDiagram, 3000);
     updateFlowDiagram();
 
     window.toggleAutoMode = toggleAutoMode;

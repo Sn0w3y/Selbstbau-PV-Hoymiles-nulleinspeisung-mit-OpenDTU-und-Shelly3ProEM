@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfigurationsseite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Konfigurationsseite</h1>
+        </header>
+        <section class="config-section">
+            <form id="configForm">
+                <fieldset>
+                    <legend>DTU Einstellungen</legend>
+                    <div class="config-form">
+                        <div class="form-group">
+                            <label for="dtu_ip" class="form-label">DTU IP:</label>
+                            <input type="text" id="dtu_ip" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dtu_nutzer" class="form-label">DTU Benutzer:</label>
+                            <input type="text" id="dtu_nutzer" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dtu_passwort" class="form-label">DTU Passwort:</label>
+                            <input type="password" id="dtu_passwort" class="form-control" required>
+                        </div>
+                        <button type="button" id="fetchInvertersButton" class="btn btn-info">Wechselrichterdaten abrufen</button>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Shelly</legend>
+                    <div class="form-group">
+                        <label for="shelly_ip" class="form-label">Shelly IP:</label>
+                        <input type="text" id="shelly_ip" class="form-control" required>
+                    </div>
+                </fieldset>
+                <div id="additionalInverters"></div>
+                <button type="button" id="addInverterButton" class="btn btn-secondary">Weiteren Wechselrichter hinzufügen</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </section>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="{{ url_for('static', filename='config.js') }}"></script>
+</body>
+</html>

@@ -15,91 +15,23 @@
         <header>
             <h1>Konfigurations-Dashboard</h1>
         </header>
-        <section class="config-section">
-            <form method="POST" action="/">
-                {{ form.hidden_tag() }}
-                <fieldset>
-                    <legend>WR Konfiguration</legend>
-                    <div class="config-form">
-                        <div class="form-group">
-                            {{ form.serial.label(class="form-label") }}
-                            {{ form.serial(class="form-control") }}
-                        </div>
-                        <div class="form-group">
-                            {{ form.maximum_wr.label(class="form-label") }}
-                            {{ form.maximum_wr(class="form-control") }}
-                        </div>
-                        <div class="form-group">
-                            {{ form.minimum_wr.label(class="form-label") }}
-                            {{ form.minimum_wr(class="form-control") }}
-                        </div>
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>DTU Konfiguration</legend>
-                    <div class="config-form">
-                        <div class="form-group">
-                            {{ form.dtu_ip.label(class="form-label") }}
-                            {{ form.dtu_ip(class="form-control") }}
-                        </div>
-                        <div class="form-group">
-                            {{ form.dtu_nutzer.label(class="form-label") }}
-                            {{ form.dtu_nutzer(class="form-control") }}
-                        </div>
-                        <div class="form-group">
-                            {{ form.dtu_passwort.label(class="form-label") }}
-                            {{ form.dtu_passwort(class="form-control", type="password") }}
-                        </div>
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Shelly Konfiguration</legend>
-                    <div class="config-form">
-                        <div class="form-group">
-                            {{ form.shelly_ip.label(class="form-label") }}
-                            {{ form.shelly_ip(class="form-control") }}
-                        </div>
-                        <div class="form-group">
-                            {{ form.manual_limit.label(class="form-label") }}
-                            {{ form.manual_limit(class="form-control") }}
-                        </div>
-                    </div>
-                </fieldset>
-                <div class="form-actions">
-                    {{ form.submit(class="btn btn-primary") }}
-                </div>
-            </form>
-        </section>
         <section class="control-section">
             <div class="form-actions">
                 <button id="autoModeButton" class="btn btn-success" onclick="toggleAutoMode()">AUTO-Modus starten</button>
+                <select id="inverterSelect" class="form-control"></select>
                 <button id="setManualLimitButton" class="btn btn-warning" onclick="setManualLimit()">Manuelles Limit setzen</button>
             </div>
         </section>
         <section class="flow-diagram-section">
-            <div class="flow-diagram">
-                <div class="box" id="dtuBox">
-                    <h2>DTU</h2>
-                    <p>Name: <span id="name">Abrufen...</span></p>
-                    <p>Status: <span id="dtuProducing">Abrufen...</span></p>
-                    <p>Leistung DC: <span id="dtuPowerDC">Abrufen...</span></p>
-                    <p>Leistung AC: <span id="dtuPowerAC">Abrufen...</span></p>
-                </div>
-                <div class="arrow-container">
-                    <div class="arrow" id="gridArrow"></div>
-                </div>
-                <div class="box" id="shellyBox">
-                    <h2>Shelly (<span id="shellyTypeHeader">Abrufen...</span>)</h2>
-                    <p><span id="shellyPower">Abrufen...</span></p>
-                    <p>Verbrauch: <span id="totalConsumption">Abrufen...</span></p>
-                </div>
-                <div class="box" id="limitBox">
-                    <h2>Aktuelles Limit</h2>
-                    <p>Limit: <span id="currentLimit">Abrufen...</span></p>
-                </div>
-            </div>
+            <div class="flow-diagram" id="invertersContainer"></div>
+            <div class="flow-diagram" id="shellyContainer"></div>
+            <div class="flow-diagram" id="limitContainer"></div>
+            <div class="flow-diagram" id="verbrauchContainer"></div>
         </section>
     </div>
+    <script>
+        const config = {{ config|tojson }};
+    </script>
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
 </html>
