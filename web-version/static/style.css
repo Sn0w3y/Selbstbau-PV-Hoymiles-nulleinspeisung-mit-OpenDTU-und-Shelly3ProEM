@@ -18,7 +18,7 @@ body {
     transition: all 0.3s ease;
 }
 
-h1 {
+header h1 {
     text-align: center;
     margin-bottom: 20px;
     color: #212529;
@@ -28,7 +28,7 @@ h1 {
     position: relative;
 }
 
-h1:after {
+header h1:after {
     content: '';
     display: block;
     width: 80px;
@@ -36,6 +36,31 @@ h1:after {
     background: #007bff;
     margin: 10px auto 0;
     border-radius: 2px;
+}
+
+.config-section,
+.control-section,
+.flow-diagram-section {
+    margin-bottom: 30px;
+}
+
+fieldset {
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s ease;
+}
+
+fieldset:hover {
+    border-color: #007bff;
+}
+
+legend {
+    padding: 0 10px;
+    font-size: 1.2em;
+    font-weight: 700;
+    color: #007bff;
 }
 
 .config-form {
@@ -47,6 +72,13 @@ h1:after {
 .form-group {
     flex: 1 1 calc(50% - 15px);
     margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #212529;
+    font-weight: 700;
 }
 
 .form-control {
@@ -128,7 +160,6 @@ h1:after {
 }
 
 .flow-diagram {
-    margin-top: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,27 +184,67 @@ h1:after {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
+.arrow-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 100px;
+}
+
 .arrow {
-    font-size: 2rem;
-    color: #007bff;
-    transition: color 0.3s ease;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 10px 0 10px 20px;
+    border-color: transparent transparent transparent #007bff;
+    animation: moveArrow 1s linear infinite;
 }
 
-.arrow:hover {
-    color: #0056b3;
+.grid-arrow-container {
+    width: 100%;
+    text-align: center;
+    margin-top: 20px;
 }
 
-.inline-form {
-    display: inline-block;
-    margin: 10px;
+.grid-arrow {
+    width: 30px;
+    height: 30px;
+    background-color: #007bff;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    animation: moveGridArrow 1s linear infinite;
+}
+
+@keyframes moveArrow {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(20px);
+    }
+}
+
+@keyframes moveGridArrow {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(20px);
+    }
+}
+
+@media (max-width: 992px) {
+    .form-group {
+        flex: 1 1 100%;
+    }
+    .btn {
+        width: 100%;
+    }
 }
 
 @media (max-width: 768px) {
     .config-form {
         flex-direction: column;
-    }
-    .form-group {
-        flex: 1 1 100%;
     }
     .form-actions {
         flex-direction: column;
@@ -181,7 +252,7 @@ h1:after {
     .flow-diagram {
         flex-direction: column;
     }
-    .arrow {
+    .arrow-container {
         display: none;
     }
 }

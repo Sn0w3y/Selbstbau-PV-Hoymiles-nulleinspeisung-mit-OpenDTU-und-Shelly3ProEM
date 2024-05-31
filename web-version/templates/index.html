@@ -12,157 +12,94 @@
 </head>
 <body>
     <div class="container">
-        <h1>Konfigurations-Dashboard</h1>
-        <form method="POST" action="/">
-            {{ form.hidden_tag() }}
-            <div class="config-form">
-                <div class="form-group">
-                    {{ form.serial.label }} {{ form.serial(class="form-control") }}
+        <header>
+            <h1>Konfigurations-Dashboard</h1>
+        </header>
+        <section class="config-section">
+            <form method="POST" action="/">
+                {{ form.hidden_tag() }}
+                <fieldset>
+                    <legend>WR Konfiguration</legend>
+                    <div class="config-form">
+                        <div class="form-group">
+                            {{ form.serial.label(class="form-label") }}
+                            {{ form.serial(class="form-control") }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.maximum_wr.label(class="form-label") }}
+                            {{ form.maximum_wr(class="form-control") }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.minimum_wr.label(class="form-label") }}
+                            {{ form.minimum_wr(class="form-control") }}
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>DTU Konfiguration</legend>
+                    <div class="config-form">
+                        <div class="form-group">
+                            {{ form.dtu_ip.label(class="form-label") }}
+                            {{ form.dtu_ip(class="form-control") }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.dtu_nutzer.label(class="form-label") }}
+                            {{ form.dtu_nutzer(class="form-control") }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.dtu_passwort.label(class="form-label") }}
+                            {{ form.dtu_passwort(class="form-control", type="password") }}
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Shelly Konfiguration</legend>
+                    <div class="config-form">
+                        <div class="form-group">
+                            {{ form.shelly_ip.label(class="form-label") }}
+                            {{ form.shelly_ip(class="form-control") }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.manual_limit.label(class="form-label") }}
+                            {{ form.manual_limit(class="form-control") }}
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="form-actions">
+                    {{ form.submit(class="btn btn-primary") }}
                 </div>
-                <div class="form-group">
-                    {{ form.maximum_wr.label }} {{ form.maximum_wr(class="form-control") }}
-                </div>
-                <div class="form-group">
-                    {{ form.minimum_wr.label }} {{ form.minimum_wr(class="form-control") }}
-                </div>
-                <div class="form-group">
-                    {{ form.dtu_ip.label }} {{ form.dtu_ip(class="form-control") }}
-                </div>
-                <div class="form-group">
-                    {{ form.dtu_nutzer.label }} {{ form.dtu_nutzer(class="form-control") }}
-                </div>
-                <div class="form-group">
-                    {{ form.dtu_passwort.label }} {{ form.dtu_passwort(class="form-control", type="password") }}
-                </div>
-                <div class="form-group">
-                    {{ form.shelly_ip.label }} {{ form.shelly_ip(class="form-control") }}
-                </div>
-                <div class="form-group">
-                    {{ form.manual_limit.label }} {{ form.manual_limit(class="form-control") }}
-                </div>
-            </div>
+            </form>
+        </section>
+        <section class="control-section">
             <div class="form-actions">
-                {{ form.submit(class="btn btn-primary") }}
+                <button id="autoModeButton" class="btn btn-success" onclick="toggleAutoMode()">AUTO-Modus starten</button>
+                <button id="setManualLimitButton" class="btn btn-warning" onclick="setManualLimit()">Manuelles Limit setzen</button>
             </div>
-        </form>
-        <div class="form-actions">
-            <button id="autoModeButton" class="btn btn-success" onclick="toggleAutoMode()">AUTO-Modus starten</button>
-            <button id="setManualLimitButton" class="btn btn-warning" onclick="setManualLimit()">Manuelles Limit setzen</button>
-        </div>
-        <div class="flow-diagram">
-            <div class="box" id="dtuBox">
-                <h2>DTU</h2>
-                <p>Name: <span id="name">Abrufen...</span> </p>
-                <p>Status: <span id="dtuProducing">Abrufen...</span> </p>
-                <p>Leistung DC: <span id="dtuPowerDC">Abrufen...</span></p>
-                <p>Leistung AC: <span id="dtuPowerAC">Abrufen...</span></p>
+        </section>
+        <section class="flow-diagram-section">
+            <div class="flow-diagram">
+                <div class="box" id="dtuBox">
+                    <h2>DTU</h2>
+                    <p>Name: <span id="name">Abrufen...</span></p>
+                    <p>Status: <span id="dtuProducing">Abrufen...</span></p>
+                    <p>Leistung DC: <span id="dtuPowerDC">Abrufen...</span></p>
+                    <p>Leistung AC: <span id="dtuPowerAC">Abrufen...</span></p>
+                </div>
+                <div class="arrow-container">
+                    <div class="arrow" id="gridArrow"></div>
+                </div>
+                <div class="box" id="shellyBox">
+                    <h2>Shelly (<span id="shellyTypeHeader">Abrufen...</span>)</h2>
+                    <p><span id="shellyPower">Abrufen...</span></p>
+                    <p>Verbrauch: <span id="totalConsumption">Abrufen...</span></p>
+                </div>
+                <div class="box" id="limitBox">
+                    <h2>Aktuelles Limit</h2>
+                    <p>Limit: <span id="currentLimit">Abrufen...</span></p>
+                </div>
             </div>
-            <div class="arrow">→</div>
-            <div class="box" id="shellyBox">
-                <h2>Shelly (<span id="shellyTypeHeader">Abrufen...</span>)</h2>
-                <p><span id="shellyPower">Abrufen...</span></p>
-                <p>Verbrauch: <span id="totalConsumption">Abrufen...</span></p>
-            </div>
-            <div class="box" id="limitBox">
-                <h2>Aktuelles Limit</h2>
-                <p>Limit: <span id="currentLimit">Abrufen...</span></p>
-            </div>
-        </div>
+        </section>
     </div>
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-function updateFlowDiagram() {
-    fetch('/data')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('name').textContent = data.dtu.name; // Set the name of the DTU Box
-
-            document.getElementById('dtuProducing').textContent = data.dtu.producing === 1 ? "Produzieren" : "Standby";
-            document.getElementById('dtuPowerDC').textContent = `${Math.abs(data.dtu.power_dc) < 2 ? 0 : Math.abs(data.dtu.power_dc).toFixed(2)} W`;
-            document.getElementById('dtuPowerAC').textContent = `${Math.abs(data.dtu.power).toFixed(2)} W`;
-
-            let shellyStatus = data.shelly.total_act_power < 0 ? "Einspeisung" : "Bezug";
-            document.getElementById('shellyPower').textContent = `${shellyStatus}: ${Math.abs(data.shelly.total_act_power).toFixed(2)} W`;
-
-            document.getElementById('currentLimit').textContent = data.current_limit !== 'N/A' ? `${data.current_limit} W` : 'N/A';
-
-            let totalConsumption = Math.abs(data.dtu.power) + Math.abs(data.shelly.total_act_power);
-            document.getElementById('totalConsumption').textContent = `${totalConsumption.toFixed(2)} W`;
-
-            document.getElementById('shellyTypeHeader').textContent = data.shelly.type;
-
-            updateAutoModeButton(data.auto_mode);
-        });
-}
-
-
-    function updateAutoModeButton(auto_mode) {
-        const autoModeButton = document.getElementById('autoModeButton');
-        const manualLimitButton = document.getElementById('setManualLimitButton');
-
-        if (auto_mode) {
-            autoModeButton.textContent = 'AUTO-Modus stoppen';
-            autoModeButton.classList.remove('btn-success');
-            autoModeButton.classList.add('btn-danger');
-            manualLimitButton.disabled = true; // Disable manual limit button
-            manualLimitButton.classList.add('disabled');
-        } else {
-            autoModeButton.textContent = 'AUTO-Modus starten';
-            autoModeButton.classList.remove('btn-danger');
-            autoModeButton.classList.add('btn-success');
-            manualLimitButton.disabled = false; // Enable manual limit button
-            manualLimitButton.classList.remove('disabled');
-        }
-        console.log(auto_mode ? 'AUTO-Modus ist aktiviert' : 'AUTO-Modus ist deaktiviert');
-    }
-
-    function toggleAutoMode() {
-        const button = document.getElementById('autoModeButton');
-        const isAutoMode = button.textContent === 'AUTO-Modus stoppen';
-        fetch(isAutoMode ? '/stop_auto' : '/start_auto', { method: 'POST' })
-            .then(() => {
-                setTimeout(updateFlowDiagram, 1000); // Ensure the button state updates after server-side state changes
-            });
-    }
-
-    function setManualLimit() {
-        const manualLimit = document.querySelector('input[name="manual_limit"]').value;
-        fetch('/set_manual_limit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ limit: parseInt(manualLimit) })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                toastr.success('Manuelles Limit erfolgreich gesetzt.');
-                console.log('Manual limit set successfully');
-                updateFlowDiagram();
-            } else {
-                console.error('Failed to set manual limit', data.reason);
-                if (data.reason.includes('Auto mode is enabled')) {
-                    toastr.error('Manuelles Limit kann nicht gesetzt werden, da der AUTO-Modus aktiviert ist.');
-                } else if (data.reason.includes('unreachable')) {
-                    toastr.error('Manuelles Limit kann nicht gesetzt werden, da der Wechselrichter nicht erreichbar ist.');
-                } else {
-                    toastr.error('Manuelles Limit konnte nicht gesetzt werden.');
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error setting manual limit:', error);
-            toastr.error('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
-        });
-    }
-
-    setInterval(updateFlowDiagram, 1000);
-    updateFlowDiagram(); // Initial call to set the button state on page load
-
-    window.toggleAutoMode = toggleAutoMode; // Expose function to global scope
-    window.setManualLimit = setManualLimit; // Expose function to global scope
-});
-</script>
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
 </html>
