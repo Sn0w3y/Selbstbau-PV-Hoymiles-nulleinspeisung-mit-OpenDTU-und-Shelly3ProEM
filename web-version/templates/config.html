@@ -6,6 +6,42 @@
     <title>Konfigurationsseite</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .step-buttons {
+            margin-top: 20px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted black;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #f9f9f9;
+            color: #000;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position the tooltip above the text */
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -14,35 +50,58 @@
         </header>
         <section class="config-section">
             <form id="configForm">
-                <fieldset>
-                    <legend>DTU Einstellungen</legend>
-                    <div class="config-form">
-                        <div class="form-group">
-                            <label for="dtu_ip" class="form-label">DTU IP:</label>
-                            <input type="text" id="dtu_ip" class="form-control" required>
+                <div class="step active" id="step1">
+                    <fieldset>
+                        <legend>DTU Einstellungen</legend>
+                        <p>Bitte geben Sie die DTU IP-Adresse und Zugangsdaten ein, um die Wechselrichterdaten abzurufen.</p>
+                        <div class="config-form">
+                            <div class="form-group tooltip">
+                                <label for="dtu_ip" class="form-label">DTU IP:</label>
+                                <input type="text" id="dtu_ip" class="form-control" required>
+                                <span class="tooltiptext">Die IP-Adresse der DTU</span>
+                            </div>
+                            <div class="form-group tooltip">
+                                <label for="dtu_nutzer" class="form-label">DTU Benutzer:</label>
+                                <input type="text" id="dtu_nutzer" class="form-control" required>
+                                <span class="tooltiptext">Benutzername für die DTU</span>
+                            </div>
+                            <div class="form-group tooltip">
+                                <label for="dtu_passwort" class="form-label">DTU Passwort:</label>
+                                <input type="password" id="dtu_passwort" class="form-control" required>
+                                <span class="tooltiptext">Passwort für die DTU</span>
+                            </div>
+                            <button type="button" id="fetchInvertersButton" class="btn btn-info">Wechselrichterdaten abrufen</button>
                         </div>
-                        <div class="form-group">
-                            <label for="dtu_nutzer" class="form-label">DTU Benutzer:</label>
-                            <input type="text" id="dtu_nutzer" class="form-control" required>
+                    </fieldset>
+                </div>
+                <div class="step" id="step2">
+                    <fieldset>
+                        <legend>Wechselrichter</legend>
+                        <p>Überprüfen Sie die abgerufenen Wechselrichterdaten und geben Sie die minimalen Leistungswerte ein.</p>
+                        <div id="additionalInverters"></div>
+                        <button type="button" id="addInverterButton" class="btn btn-secondary">Weiteren Wechselrichter hinzufügen</button>
+                    </fieldset>
+                </div>
+                <div class="step" id="step3">
+                    <fieldset>
+                        <legend>Shelly</legend>
+                        <p>Bitte geben Sie die IP-Adresse des Shelly Geräts ein.</p>
+                        <div class="form-group tooltip">
+                            <label for="shelly_ip" class="form-label">Shelly IP:</label>
+                            <input type="text" id="shelly_ip" class="form-control" required>
+                            <span class="tooltiptext">Die IP-Adresse des Shelly Geräts</span>
                         </div>
-                        <div class="form-group">
-                            <label for="dtu_passwort" class="form-label">DTU Passwort:</label>
-                            <input type="password" id="dtu_passwort" class="form-control" required>
+                        <div class="form-group tooltip">
+                            <label for="auto_mode" class="form-label">AUTO-Modus starten:</label>
+                            <input type="checkbox" id="auto_mode" class="form-control">
+                            <span class="tooltiptext">Aktivieren, um den AUTO-Modus direkt zu starten</span>
                         </div>
-                        <button type="button" id="fetchInvertersButton" class="btn btn-info">Wechselrichterdaten abrufen</button>
-                    </div>
-                </fieldset>
-                <fieldset>
-                    <legend>Shelly</legend>
-                    <div class="form-group">
-                        <label for="shelly_ip" class="form-label">Shelly IP:</label>
-                        <input type="text" id="shelly_ip" class="form-control" required>
-                    </div>
-                </fieldset>
-                <div id="additionalInverters"></div>
-                <button type="button" id="addInverterButton" class="btn btn-secondary">Weiteren Wechselrichter hinzufügen</button>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Speichern</button>
+                    </fieldset>
+                </div>
+                <div class="step-buttons">
+                    <button type="button" id="prevStep" class="btn btn-secondary" style="display: none;">Zurück</button>
+                    <button type="button" id="nextStep" class="btn btn-primary">Weiter</button>
+                    <button type="submit" id="submitConfig" class="btn btn-primary" style="display: none;">Speichern</button>
                 </div>
             </form>
         </section>

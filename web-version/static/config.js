@@ -1,12 +1,26 @@
 document.addEventListener('DOMContentLoaded', function() {
     const configForm = document.getElementById('configForm');
+    const steps = document.querySelectorAll('.step');
+    const prevStepButton = document.getElementById('prevStep');
+    const nextStepButton = document.getElementById('nextStep');
+    const submitButton = document.getElementById('submitConfig');
+    const fetchInvertersButton = document.getElementById('fetchInvertersButton');
     const addInverterButton = document.getElementById('addInverterButton');
     const additionalInverters = document.getElementById('additionalInverters');
-    const fetchInvertersButton = document.getElementById('fetchInvertersButton');
     const dtuIpInput = document.getElementById('dtu_ip');
     const dtuUserInput = document.getElementById('dtu_nutzer');
     const dtuPasswordInput = document.getElementById('dtu_passwort');
     let inverterCount = 0;
+    let currentStep = 0;
+
+    function showStep(step) {
+        steps.forEach((s, index) => {
+            s.classList.toggle('active', index === step);
+        });
+        prevStepButton.style.display = step > 0 ? 'inline-block' : 'none';
+        nextStepButton.style.display = step < steps.length - 1 ? 'inline-block' : 'none';
+        submitButton.style.display = step === steps.length - 1 ? 'inline-block' : 'none';
+    }
 
     fetchInvertersButton.addEventListener('click', () => {
         const dtuIp = dtuIpInput.value;
@@ -66,6 +80,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 additionalInverters.appendChild(newInverter);
             });
+
+            currentStep++;
+            showStep(currentStep);
         })
         .catch(error => {
             alert('Error: ' + error.message);
@@ -107,6 +124,20 @@ document.addEventListener('DOMContentLoaded', function() {
         additionalInverters.appendChild(newInverter);
     });
 
+    nextStepButton.addEventListener('click', () => {
+        if (currentStep < steps.length - 1) {
+            currentStep++;
+            showStep(currentStep);
+        }
+    });
+
+    prevStepButton.addEventListener('click', () => {
+        if (currentStep > 0) {
+            currentStep--;
+            showStep(currentStep);
+        }
+    });
+
     configForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const inverters = [];
@@ -122,7 +153,8 @@ document.addEventListener('DOMContentLoaded', function() {
             inverters.push(inverter);
         }
         const shelly_ip = document.getElementById('shelly_ip').value;
-        const config = { inverters, shelly_ip };
+        const auto_mode = document.getElementById('auto_mode').checked;
+        const config = { inverters, shelly_ip, auto_mode };
 
         fetch('/config', {
             method: 'POST',
@@ -138,4 +170,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    showStep(currentStep);
 });

@@ -31,11 +31,21 @@ def index():
     user_config = load_user_config()
     return render_template('index.html', config=user_config)
 
+
 @app.route('/config', methods=['GET', 'POST'])
 def config_page():
     if request.method == 'POST':
         user_config = request.json
         save_user_config(user_config)
+
+        if user_config.get('auto_mode'):
+            try:
+                with config_lock:
+                    config['auto_mode'] = True
+                    logging.info("Auto mode started")
+            except requests.exceptions.RequestException as e:
+                return jsonify({'status': 'failure', 'error': str(e)}), 500
+
         return jsonify(status='success')
     return render_template('config.html')
 
