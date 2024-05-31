@@ -11,5 +11,5 @@ class ConfigForm(FlaskForm):
     dtu_nutzer = StringField('DTU Benutzer:', validators=[DataRequired()])
     dtu_passwort = StringField('DTU Passwort:', validators=[DataRequired()])
     shelly_ip = StringField('Shelly IP:', validators=[DataRequired()])
-    manual_limit = IntegerField('Manuelles Limit (W):', validators=[DataRequired()])
+    manual_limit = IntegerField('Manuelles Limit (W):')
     submit = SubmitField('Speichern')

@@ -7,6 +7,10 @@ from typing import Optional, Dict, Any
 import logging
 from config import config, config_lock
 
+def get_reachable_status():
+    global reachable
+    return reachable
+
 def detect_shelly_type():
     try:
         response_pro = requests.get(f'http://{config["shelly_ip"]}/rpc/EM.GetStatus?id=0',
@@ -27,6 +31,7 @@ def detect_shelly_type():
     return None
 
 def fetch_dtu_data() -> Optional[Dict[str, Any]]:
+    global reachable  # Access the global variable
     try:
         url = f'http://{config["dtu_ip"]}/api/livedata/status?inv={config["serial"]}'
         response = requests.get(url)
@@ -36,7 +41,10 @@ def fetch_dtu_data() -> Optional[Dict[str, Any]]:
 
         total_dc_power = sum(dc['Power']['v'] for dc in inverter['DC'].values())
 
+        reachable = inverter['reachable']
+
         return {
+            'name': inverter['name'],  # Include the name of the inverter
             'reachable': inverter['reachable'],
             'producing': int(inverter['producing']),
             'altes_limit': int(inverter['limit_absolute']),

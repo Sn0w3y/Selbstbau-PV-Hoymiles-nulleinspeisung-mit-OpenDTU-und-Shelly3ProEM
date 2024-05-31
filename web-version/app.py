@@ -4,12 +4,10 @@ from forms import ConfigForm  # Add this line to import ConfigForm
 import threading
 import logging
 from config import config, config_lock
-from utils import detect_shelly_type, fetch_dtu_data, fetch_shelly_data, set_inverter_limit, auto_mode_loop
+from utils import detect_shelly_type, fetch_dtu_data, fetch_shelly_data, set_inverter_limit, auto_mode_loop, get_reachable_status
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'jsfkhdfkjhdkhsijwd82'
-
-reachable = None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -96,17 +94,20 @@ def set_manual_limit():
     if limit is not None:
         with config_lock:
             if not config['auto_mode']:
-                if reachable:
+                if get_reachable_status():
                     config['manual_limit'] = limit
                     logging.info(f"Setting manual inverter limit: {limit} W")
                     set_inverter_limit(limit)
                     return jsonify({'status': 'success'}), 200
                 else:
-                    logging.info("Setting manual inverter is not possible - inverter not reachable!")
+                    logging.error("Setting manual inverter limit failed - inverter not reachable!")
                     return jsonify({'status': 'failure', 'reason': 'unreachable'}), 400
-            return jsonify({'status': 'failure', 'reason': 'Auto mode is enabled or invalid limit'}), 400
-    return jsonify({'status': 'failure', 'reason': 'Invalid limit value'}), 400
-
+            else:
+                logging.error("Setting manual inverter limit failed - Auto mode is enabled or invalid limit")
+                return jsonify({'status': 'failure', 'reason': 'Auto mode is enabled or invalid limit'}), 400
+    else:
+        logging.error("Setting manual inverter limit failed - Invalid limit value")
+        return jsonify({'status': 'failure', 'reason': 'Invalid limit value'}), 400
 
 if __name__ == '__main__':
     auto_thread = threading.Thread(target=auto_mode_loop, daemon=True)
